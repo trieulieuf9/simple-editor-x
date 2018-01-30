@@ -1,5 +1,7 @@
 from curses import *
 import sys
+import os
+from subprocess import call
 
 # add the word custom, so we will mistaken them with variable inside Curses library
 CUSTOM_KEY_ESCAPE = 27
@@ -9,33 +11,49 @@ CUSTOM_KEY_TAB = 9
 BORDER = 1
 
 def main(screen):
+    setUpEnv()
+    # screen.keypad(0)
+    height, width = screen.getmaxyx()
+    file_path = sys.argv[1]
+
+    text = readFileIfExist(file_path)
+    while 1:
+        try:
+            text = startEditing(screen, width, height, text)
+            printQuitOptions(screen, width, height)
+            char = screen.getch()
+            if char == CUSTOM_KEY_ENTER:
+                with open(file_path, "w+") as file:
+                    file.write(text)
+                return 0
+            elif char == KEY_F9:
+                break
+        except KeyboardInterrupt: # quit properly, when user press Ctrl + C
+            return 1
+        except:
+            return -1
+
+def setUpEnv():
     use_default_colors()
     init_pair(BORDER, COLOR_BLUE, -1)
-    width = 262
-    height = 17
 
+def readFileIfExist(file_path):
     text = ""
-    while 1:
-        text = startEditing(screen, width, height, text)
-        printQuitOptions(screen, width, height)
-        char = screen.getch()
-        if char == CUSTOM_KEY_ENTER:
-            with open("Congratulation.txt", "w+") as file:
-                file.write(text)
-            break
-        elif char == KEY_F9:
-            break
-        else:
-            pass
+    if os.path.isfile(file_path):
+        with open(file_path, "r") as file:
+            text = file.read()
+    return text
+
+
+
 
 
 def startEditing(screen, width, height, text):
     cursor = Cursor(screen, width, height, text)
     while 1:
-        try:
-            char = screen.getch()
-        except KeyboardInterrupt: # quit properly, when user press Ctrl + C
-            sys.exit()
+        char = screen.getch()
+        cursor._writeString(keyname(char))
+        cursor._writeString(" ")
         if char == KEY_F1:
             break
         elif char == KEY_RIGHT:
@@ -63,15 +81,18 @@ def startEditing(screen, width, height, text):
             else:  # in case char user press ESC
                 ungetch(char)
         else:
-            cursor._writeString(str(char))
-    return cursor.getText()
+            # cursor._writeString(str(char))
+            cursor._writeString(keyname(char))
+
+            # cursor._writeString(os.environ['TERM'])
+    # return cursor.getText()
+    return "hello"
 
 
 def printQuitOptions(screen, width, height):
     screen.clear()
     y = int(height / 4)
-    # x = int(width / 4) # comment in, when run in real terminal
-    x = int(width / 8)
+    x = int(width / 4)
     screen.addstr(y, x, "Quit and Save (ENTER)")
     screen.addstr(y + 1, x, "Quit (F9)")
     screen.addstr(y + 2, x, "Go Back (Any Key)")
@@ -92,7 +113,7 @@ class Cursor:
 
     def moveRight(self):
         self._updateXY()
-        if self.x < self.screen_width:
+        if self.x < len(self.text[self.y]):
             self._move(self.x + 1, self.y)
 
     def moveLeft(self):
@@ -102,8 +123,10 @@ class Cursor:
 
     def moveDown(self):
         self._updateXY()
-        if self.y < len(self.text):
+        if self.y < len(self.text) - 1:
             self._move(self.x, self.y + 1)
+        elif self.y == len(self.text) - 1:
+            self.moveToRightMost()
 
     def moveUp(self):
         self._updateXY()
@@ -111,21 +134,16 @@ class Cursor:
             self._move(self.x, self.y - 1)
 
     def newLine(self):
-        # when press enter, getch return 2 input char at the same time, but we want to execute it only one time
-        # count is a catch for this problem
-        self.count += 1
-        if self.count == 2:
-            self.count = 0
-            self._updateXY()
-            if self.x >= len(self.text[self.y]):
-                self.text.append("")
-            else:
-                line = self.text[self.y]
-                self.text[self.y] = line[:self.x]
-                self.text.insert(self.y + 1, line[self.x:])
-            self._updateScreen()
-            self.moveDown()
-            self.moveToLeftMost()
+        self._updateXY()
+        if self.x >= len(self.text[self.y]):
+            self.text.append("")
+        else:
+            line = self.text[self.y]
+            self.text[self.y] = line[:self.x]
+            self.text.insert(self.y + 1, line[self.x:])
+        self._updateScreen()
+        self.moveDown()
+        self.moveToLeftMost()
 
     def writeChar(self, char):
         self._updateXY()
@@ -146,6 +164,7 @@ class Cursor:
         if len(self.text[self.y]) == 0 and self.y != 0:
             self.text.pop(self.y)
             self._updateScreen()
+            # self.moveUp()
             self.moveToRightMost()
         elif len(self.text[self.y]) > 0 and len(self.text[self.y]) == self.x:
             self.text[self.y] = self.text[self.y][:-1]
@@ -204,8 +223,23 @@ class Cursor:
 
 
 if __name__== "__main__":
-    wrapper(main)
+    if len(sys.argv) != 2:
+        call(["echo", "no file path found"])
+        sys.exit(99)
+
+    exit_code = wrapper(main)
+
+    if exit_code == -1:
+        call(["echo", "Shit just happen, sorry."])
+    elif exit_code == 0:
+        call(["echo", "saved !"])
+    elif exit_code == 1:
+        call(["echo", "Quit, safe and sound."])
 
 
 # todo
-# open existing file and edit
+# delete whole line of text with cmd + delete
+# make it run on mac terminal
+# responsive window, when terminal window resize, resize the text box as well
+# scroll function when there are too much text
+# refactor

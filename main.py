@@ -160,7 +160,7 @@ class Cursor:
         self._updateScreen()
         self.moveDown("newline_function")
         self.moveToLeftMost()
-        self._debug("self.y: {}, screen_height: {}, total_text_line: {}, line_writing_to: {}, scroll_from_line: {}, last_work: {}".format(self.y, self.screen_height, len(self.text), self.y + self.scroll_from_line - 1, self.scroll_from_line, self.text[-5:-1]))
+        # self._debug("self.y: {}, screen_height: {}, total_text_line: {}, line_writing_to: {}, scroll_from_line: {}, last_work: {}".format(self.y, self.screen_height, len(self.text), self.y + self.scroll_from_line - 1, self.scroll_from_line, self.text[-5:-1]))
 
     def writeChar(self, char):
         self._updateXY()
@@ -210,8 +210,6 @@ class Cursor:
     def moveToRightMost(self):
         self._updateXY()
         self._move(len(self.text[self.y + self.scroll_from_line]), self.y)
-        self._debug("MoveToRightMost: ")
-
 
     #todo: refactor this shit
     def moveToRightBottomMost(self):
@@ -243,11 +241,15 @@ class Cursor:
         self.moveToLeftMost()
 
     def resizeTextBox(self):
-        self.screen_height, self.screen_width = self.screen.getmaxyx()
-        self._updateScreen()
+        height, width = self.screen.getmaxyx()
+        self.screen_height, self.screen_width = height - 1, width - 1
+        if self.y > self.screen_height:
+            self.y = self.screen_height
+            self.x = len(self.text[self.y])
+        self._updateScreen(True)
 
     ### private function ###
-    def _updateScreen(self):
+    def _updateScreen(self, call_from_resize=False):
         curs_set(0) # hide cursor, so user don't see it flash while updating screen
 
         # write ~ in the beginning of each row
@@ -256,8 +258,14 @@ class Cursor:
             self.screen.addstr(y, 0, "~", color_pair(BORDER))
 
         # input text to it
-        # if scroll_from_line()
-        text_array = self.text[self.scroll_from_line: self.scroll_from_line + self.screen_height + 1]
+        begin = self.scroll_from_line
+        end = self.scroll_from_line + self.screen_height + 1
+        text_array = self.text[begin: end]
+
+        if call_from_resize:
+            self._debug("_updateScreen: screen_height: {}, text_size: {}, begin: {}, end: {}".format(self.screen_height, len(text_array), begin, end))
+
+        # self._debug("_updateScreen: {}".format(self.text))
         text = "\n".join(text_array)
         self.screen.addstr(0, 0, text)
         self._move(self.x, self.y)
@@ -302,7 +310,6 @@ if __name__== "__main__":
 
 
 # todo
-# scroll function when there are too much text
 
 # make it run on mac terminal
 # refactor

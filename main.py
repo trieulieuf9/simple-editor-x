@@ -6,15 +6,14 @@ from subprocess import call
 # add the word custom, so we will mistaken them with variable inside Curses library
 TERMINAL_RESIZE_EVENT = 410
 CUSTOM_KEY_ESCAPE = 27
-CUSTOM_KEY_BACKSPACE = 127
+CUSTOM_KEY_DELETE = 127
 CUSTOM_KEY_ENTER = 10
 CUSTOM_KEY_TAB = 9
 BORDER = 1
 
 def main(screen, file_path):
-    with open("debug.log", 'w'):
-        pass
-
+    # with open("debug.log", 'w'):
+    #     pass
 
     setUpEnv()
     text = readFileIfExist(file_path)
@@ -31,8 +30,8 @@ def main(screen, file_path):
                 break
         except KeyboardInterrupt: # quit properly, when user press Ctrl + C
             return 1
-        # except:  put it back, when done with development
-        #     return -1
+        except:  # put it back, when done with development
+            return -1
 
 def setUpEnv():
     use_default_colors()
@@ -64,19 +63,19 @@ def startEditing(screen, text):
             cursor.moveDown()
         elif 31 < char < 127:
             cursor.writeChar(char)
-        elif char == CUSTOM_KEY_BACKSPACE:
+        elif char == CUSTOM_KEY_DELETE:
             cursor.delete()
         elif char == 10 or char == 13 or char == KEY_ENTER:
             cursor.newLine()
         elif char == CUSTOM_KEY_TAB:
             cursor.tab()
         elif char == CUSTOM_KEY_ESCAPE:
-            char = screen.getch()  # get the key pressed after cmd
-            if char == KEY_LEFT:
+            char = screen.getch()  # get the key pressed after cmd or alt
+            if char == KEY_LEFT or char == 98: # 98 and 102 are left and right keys produced while pressing alt, on mac terminal
                 cursor.moveToLeftMost()
-            elif char == KEY_RIGHT:
+            elif char == KEY_RIGHT or char == 102:
                 cursor.moveToRightMost()
-            elif char == 127: # delete key
+            elif char == CUSTOM_KEY_DELETE:
                 cursor.deleteWholeLine()
             elif char == KEY_DOWN: # CMD + DOWN
                 cursor.moveToRightBottomMost()
@@ -86,8 +85,10 @@ def startEditing(screen, text):
                 ungetch(char)
         else:
             cursor._writeString(str(char))
+        # cursor._writeString(str(char))
 
     return cursor.getText()
+
 
 def printQuitOptions(screen):
     height, width = screen.getmaxyx()
@@ -160,7 +161,6 @@ class Cursor:
         self._updateScreen()
         self.moveDown("newline_function")
         self.moveToLeftMost()
-        # self._debug("self.y: {}, screen_height: {}, total_text_line: {}, line_writing_to: {}, scroll_from_line: {}, last_work: {}".format(self.y, self.screen_height, len(self.text), self.y + self.scroll_from_line - 1, self.scroll_from_line, self.text[-5:-1]))
 
     def writeChar(self, char):
         self._updateXY()
@@ -172,9 +172,6 @@ class Cursor:
             self.text[self.y + self.scroll_from_line] += chr(char)
         self._updateScreen()
         self.moveRight()
-
-        # self._debug("writeChar: self.y: {}, screen_height: {}, total_text_line: {}".format(self.y, self.screen_height, ))
-        # self._debug("writeChar: {}".format(self.text))
 
     def tab(self):
         self.writeChar(32)
@@ -246,10 +243,10 @@ class Cursor:
         if self.y > self.screen_height:
             self.y = self.screen_height
             self.x = len(self.text[self.y])
-        self._updateScreen(True)
+        self._updateScreen()
 
     ### private function ###
-    def _updateScreen(self, call_from_resize=False):
+    def _updateScreen(self):
         curs_set(0) # hide cursor, so user don't see it flash while updating screen
 
         # write ~ in the beginning of each row
@@ -262,10 +259,6 @@ class Cursor:
         end = self.scroll_from_line + self.screen_height + 1
         text_array = self.text[begin: end]
 
-        if call_from_resize:
-            self._debug("_updateScreen: screen_height: {}, text_size: {}, begin: {}, end: {}".format(self.screen_height, len(text_array), begin, end))
-
-        # self._debug("_updateScreen: {}".format(self.text))
         text = "\n".join(text_array)
         self.screen.addstr(0, 0, text)
         self._move(self.x, self.y)
@@ -310,6 +303,4 @@ if __name__== "__main__":
 
 
 # todo
-
-# make it run on mac terminal
 # refactor

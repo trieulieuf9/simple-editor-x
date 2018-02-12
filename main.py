@@ -79,7 +79,7 @@ class Cursor:
         if self.x >= len(self.text[self.y]): # at tail of line
             self.text.insert(self.y + 1, "")
         else:
-            line = self.text[self.y]
+            line = self.text[self.y] # at middle of line
             self.text[self.y] = line[:self.x]
             self.text.insert(self.y + 1, line[self.x:])
 

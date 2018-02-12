@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+binaryName="simple-editor-x"
+appDirName=".simple-editor-x"
+
+fileToSave=$1
+
+~/${appDirName}/${binaryName} ${fileToSave}

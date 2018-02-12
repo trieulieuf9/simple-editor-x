@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-python main.py test.txt
+python __main__.py test.txt

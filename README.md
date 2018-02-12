@@ -6,9 +6,9 @@ ps: I just want to type `sex` in the terminal and make it to run something loll
 
 ### How to install
 
-1. Clone or download source directory to your machine
+1. Clone or download this repository to your machine
 2. Open terminal windows in this source directory
-3. Run `bash install.sh` in the terminal
+3. Run `bash install.sh`
 4. Shit done.
 
 ### How to use

@@ -1,109 +1,8 @@
 from curses import *
-import sys
-import os
-from subprocess import call
-
-# add the word custom, so we will mistaken them with variable inside Curses library
-TERMINAL_RESIZE_EVENT = 410
-CUSTOM_KEY_ESCAPE = 27
-CUSTOM_KEY_DELETE = 127
-CUSTOM_KEY_ENTER = 10
-CUSTOM_KEY_TAB = 9
-BORDER = 1
-
-def main(screen, file_path):
-    # with open("debug.log", 'w'):
-    #     pass
-
-    setUpEnv()
-    text = readFileIfExist(file_path)
-    while 1:
-        try:
-            text = startEditing(screen, text)
-            printQuitOptions(screen)
-            char = screen.getch()
-            if char == CUSTOM_KEY_ENTER:
-                with open(file_path, "w+") as file:
-                    file.write(text)
-                return 0
-            elif char == KEY_F9:
-                break
-        except KeyboardInterrupt: # quit properly, when user press Ctrl + C
-            return 1
-        except:  # put it back, when done with development
-            return -1
-
-def setUpEnv():
-    use_default_colors()
-    init_pair(BORDER, COLOR_MAGENTA, -1)
-
-def readFileIfExist(file_path):
-    text = ""
-    if os.path.isfile(file_path):
-        with open(file_path, "r") as file:
-            text = file.read()
-    return text
-
-
-def startEditing(screen, text):
-    cursor = Cursor(screen, text)
-    while 1:
-        char = screen.getch()
-        if char == KEY_F1:
-            break
-        elif char == TERMINAL_RESIZE_EVENT:
-            cursor.resizeTextBox()
-        elif char == KEY_RIGHT:
-            cursor.moveRight()
-        elif char == KEY_LEFT:
-            cursor.moveLeft()
-        elif char == KEY_UP:
-            cursor.moveUp()
-        elif char == KEY_DOWN:
-            cursor.moveDown()
-        elif 31 < char < 127:
-            cursor.writeChar(char)
-        elif char == CUSTOM_KEY_DELETE:
-            cursor.delete()
-        elif char == 10 or char == 13 or char == KEY_ENTER:
-            cursor.newLine()
-        elif char == CUSTOM_KEY_TAB:
-            cursor.tab()
-        elif char == CUSTOM_KEY_ESCAPE:
-            char = screen.getch()  # get the key pressed after cmd or alt
-            if char == KEY_LEFT or char == 98: # 98 and 102 are left and right keys produced while pressing alt, on mac terminal
-                cursor.moveToLeftMost()
-            elif char == KEY_RIGHT or char == 102:
-                cursor.moveToRightMost()
-            elif char == CUSTOM_KEY_DELETE:
-                cursor.deleteWholeLine()
-            elif char == KEY_DOWN: # CMD + DOWN
-                cursor.moveToRightBottomMost()
-            elif char == KEY_UP:  # CMD + UP
-                cursor.moveToRightUpMost()
-            else:  # in case char user press ESC
-                ungetch(char)
-        else:
-            cursor._writeString(str(char))
-        # cursor._writeString(str(char))
-
-    return cursor.getText()
-
-
-def printQuitOptions(screen):
-    height, width = screen.getmaxyx()
-    screen.clear()
-    y = int(height / 2.5)
-    x = int(width / 2.5)
-    screen.addstr(y, x, "Quit and Save (ENTER)")
-    screen.addstr(y + 1, x, "Quit (F9)")
-    screen.addstr(y + 2, x, "Go Back (Any Key)")
-    screen.refresh()
-
 
 class Cursor:
 
-    def __init__(self, screen, text=""):
+    def __init__(self, screen, BORDER_COLOR, text=""):
         self.text = text.split("\n")
         self.count = 0
         self.x = 0
@@ -114,6 +13,7 @@ class Cursor:
         height, width = screen.getmaxyx()
         self.screen_width = width - 1  # coordinate begin with 0, screen_width begin with 1
         self.screen_height = height - 1  # coordinate begin with 0, screen_height begin with 1
+        self.BORDER_COLOR = BORDER_COLOR
         self._updateScreen()
 
     def moveRight(self):
@@ -252,7 +152,7 @@ class Cursor:
         # write ~ in the beginning of each row
         self.screen.clear()
         for y in range(len(self.text), self.screen_height):
-            self.screen.addstr(y, 0, "~", color_pair(BORDER))
+            self.screen.addstr(y, 0, "~", color_pair(self.BORDER_COLOR))
 
         # input text to it
         begin = self.scroll_from_line
@@ -285,22 +185,3 @@ class Cursor:
         with open("debug.log", "a") as file:
             file.write(textToPrint)
             file.write("\n")
-
-
-if __name__== "__main__":
-    if len(sys.argv) != 2:
-        call(["echo", "no file path found"])
-        sys.exit(99)
-
-    exit_code = wrapper(main, sys.argv[1])
-
-    if exit_code == -1:
-        call(["echo", "Shit just happen, sorry."])
-    elif exit_code == 0:
-        call(["echo", "saved !"])
-    elif exit_code == 1:
-        call(["echo", "Quit, safe and sound."])
-
-
-# todo
-# refactor

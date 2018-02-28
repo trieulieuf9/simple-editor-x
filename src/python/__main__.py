@@ -4,6 +4,7 @@ import os
 from subprocess import call
 # from entity.cursor import Cursor
 from .entity.cursor import Cursor
+import traceback
 
 
 # add the word custom, so we will mistaken them with variable inside Curses library
@@ -24,22 +25,26 @@ def main(screen, file_path):
             printQuitOptions(screen)
             char = screen.getch()
             if char == KEY_ENTER_CODE:
-                with open(file_path, "w+") as file:
-                    file.write(text)
-                return 0
+                writeToFile(file_path, text)
+                return 0, None
             elif char == KEY_F9:
-                return 2
+                return 2, None
             else:
                 pass
         except KeyboardInterrupt: # quit properly, when user press Ctrl + C
-            return 1
-        except:  # put it back, when done with development
-            return -1
+            return 1, None
+        except:
+            error_msg = traceback.format_exc()
+            return -1, error_msg
 
 
 def setUpEnv():
     use_default_colors()
     init_pair(BORDER_COLOR, COLOR_MAGENTA, -1)
+
+def writeToFile(file_path, text):
+    with open(file_path, "w+") as file:
+        file.write(text)
 
 def readFileIfExist(file_path):
     text = ""
@@ -103,9 +108,11 @@ def printQuitOptions(screen):
     screen.refresh()
 
 
-def printExitMessage(exit_code):
+def printExitMessage(exit_code, error_msg):
     if exit_code == -1:
         call(["echo", "Shit just happen, sorry."])
+        if error_msg:
+            call(["echo", error_msg])
     elif exit_code == 0:
         call(["echo", "saved !"])
     elif exit_code == 1:
@@ -117,10 +124,11 @@ def printExitMessage(exit_code):
 
 if __name__== "__main__":
     exit_code = -2
+    error_msg = None
     if len(sys.argv) == 2:
-        exit_code = wrapper(main, sys.argv[1])
+        exit_code, error_msg = wrapper(main, sys.argv[1])
 
-    printExitMessage(exit_code)
+    printExitMessage(exit_code, error_msg)
 
 
 # todo

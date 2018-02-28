@@ -75,7 +75,12 @@ def moveToRightBottomMost():
     checkAndPrintTestResult(function_name)
 
 def deleteWholeLine(): # wait
-    pass
+    keyboardInput = ["hello dude !!!", "CMD", "DELETE", "hello", "F1", "ENTER"]
+    function_name = sys._getframe().f_code.co_name
+    deleteFile("src/test/result/" + function_name)
+
+    testRunner(main, keyboardInput, "src/test/result/" + function_name)
+    checkAndPrintTestResult(function_name)
 
 
 if __name__== "__main__":
@@ -88,6 +93,4 @@ if __name__== "__main__":
     deleteAtBeginningOfFirstLine()
     moveToRightUpMost()
     moveToRightBottomMost()
-
-# todo:
-# change color in echo terminal
+    deleteWholeLine()

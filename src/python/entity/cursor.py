@@ -98,7 +98,7 @@ class Cursor:
             self.text[self.y - 1] += self.text.pop(self.y)
             self._updateScreen()
             self.moveUp()
-            self._move(index, self.y - 1)
+            self._move(index, self.y)
 
     def moveToLeftMost(self):
         self._updateXY()

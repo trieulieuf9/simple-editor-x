@@ -18,7 +18,7 @@ class Cursor:
 
     def moveRight(self):
         self._updateXY()
-        if self.x < len(self.text[self.y + self.scroll_from_line]):
+        if not self.atEndOfLine():
             self._move(self.x + 1, self.y)
 
     def moveLeft(self):
@@ -28,12 +28,12 @@ class Cursor:
 
     def moveDown(self, call_from="keyboard"):
         self._updateXY()
-        if len(self.text) - 1 > self.scroll_from_line + self.screen_height and self.y == self.screen_height and call_from != "newline_function":
+        if self.canScrollDown() and self.atBottomOfScreen() and call_from != "newline_function":
             self.scroll_from_line += 1
 
         self._updateScreen()
 
-        if self.y < len(self.text) - 1 and self.y < self.screen_height:
+        if not self.goBeyondTextLength() and not self.atBottomOfScreen():
             self._move(self.x, self.y + 1)
         self.moveToRightMost()
 
@@ -48,10 +48,9 @@ class Cursor:
 
     def newLine(self):
         self._updateXY()
-        if self.screen_height < self.y + 1:
+        if self.atBottomOfScreen():
             self.scroll_from_line += 1
-
-        if self.x >= len(self.text[self.y]):
+        if self.atEndOfLine():
             self.text.insert(self.y + self.scroll_from_line + 1, "")
         else:
             line = self.text[self.y]
@@ -66,9 +65,9 @@ class Cursor:
         self._updateXY()
         if self.scroll_from_line == 0:
             self.text[self.y] = self._insert(char, self.text[self.y], self.x)
-        elif self.scroll_from_line > 0 and self.y < self.screen_height:
+        elif self.scroll_from_line > 0 and not self.goBeyondScreenHeight():
             self.text[self.y + self.scroll_from_line] = self._insert(char, self.text[self.y + self.scroll_from_line], self.x)
-        elif self.scroll_from_line > 0 and self.y == self.screen_height:
+        elif self.scroll_from_line > 0 and self.atBottomOfScreen():
             self.text[self.y + self.scroll_from_line] += chr(char)
         self._updateScreen()
         self.moveRight()
@@ -80,20 +79,20 @@ class Cursor:
 
     def delete(self):
         self._updateXY()
-        if len(self.text[self.y]) == 0 and self.y != 0:
+        if self.currentLineIsEmpty() and not self.atTopOfScreen():
             self.text.pop(self.y)
             self._updateScreen()
             self.moveUp()
             self.moveToRightMost()
-        elif len(self.text[self.y]) > 0 and len(self.text[self.y]) == self.x:
+        elif self.currentLineIsNotEmpty() and self.atEndOfLine():
             self.text[self.y] = self.text[self.y][:-1]
             self._updateScreen()
             self.moveLeft()
-        elif self.x < len(self.text[self.y]) and self.x != 0:
+        elif self.atMiddleOfLine() and not self.atBeginOfLine():
             self.text[self.y] = self._removeChar(self.text[self.y], self.x - 1)
             self._updateScreen()
             self.moveLeft()
-        elif self.x == 0 and self.y != 0:
+        elif self.atBeginOfLine() and not self.atTopOfScreen():
             index = len(self.text[self.y - 1])
             self.text[self.y - 1] += self.text.pop(self.y)
             self._updateScreen()
@@ -108,14 +107,14 @@ class Cursor:
         self._updateXY()
         self._move(len(self.text[self.y + self.scroll_from_line]), self.y)
 
-    #todo: refactor this shit
     def moveToRightBottomMost(self):
         self._updateXY()
-        if (len(self.text) - 1 > self.screen_height):
-            self.scroll_from_line = len(self.text) - 1 - self.screen_height
+        if self.textLengthBiggerThanScreenHeight():
+            self.scroll_from_line = self._getTextLength() - self.screen_height
+
         self._updateScreen()
-        if (len(self.text) - 1 <= self.screen_height):
-            self._move(0, len(self.text) - 1)
+        if not self.textLengthBiggerThanScreenHeight():
+            self._move(0, self._getTextLength())
         else:
             self._move(0, self.screen_height)
         self.moveToRightMost()
@@ -140,7 +139,7 @@ class Cursor:
     def resizeTextBox(self):
         height, width = self.screen.getmaxyx()
         self.screen_height, self.screen_width = height - 1, width - 1
-        if self.y > self.screen_height:
+        if self.goBeyondScreenHeight():
             self.y = self.screen_height
             self.x = len(self.text[self.y])
         self._updateScreen()
@@ -185,3 +184,43 @@ class Cursor:
         with open("debug.log", "a") as file:
             file.write(textToPrint)
             file.write("\n")
+
+    def _getTextLength(self):
+        return len(self.text) - 1 # len() is base 1, -1 to cast it to base 0, for consistent with other variables
+
+    ### boolean functions ###
+    def atMiddleOfLine(self):
+        return self.x < len(self.text[self.y + self.scroll_from_line])
+
+    def atEndOfLine(self):
+        return self.x >= len(self.text[self.y])
+
+    def atBeginOfLine(self):
+        return self.x == 0
+
+    def atBottomOfScreen(self):
+        return self.screen_height == self.y
+
+    def atTopOfScreen(self):
+        return self.y == 0
+
+    def currentLineIsEmpty(self):
+        return len(self.text[self.y]) == 0
+
+    def currentLineIsNotEmpty(self):
+        return not self.currentLineIsEmpty()
+
+    def scrolling(self):
+        return self.scroll_from_line > 0
+
+    def textLengthBiggerThanScreenHeight(self):
+        return self._getTextLength() > self.screen_height
+
+    def goBeyondScreenHeight(self):
+        return self.y > self.screen_height
+
+    def goBeyondTextLength(self):
+        return self.y >= self._getTextLength()
+
+    def canScrollDown(self):
+        return self._getTextLength() > self.scroll_from_line + self.screen_height

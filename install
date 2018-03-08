@@ -14,4 +14,5 @@ shortcutFile="sex"
 chmod +x ${shortcutFile} # set execute permission
 cp ${shortcutFile} /usr/local/bin/${shortcutFile}
 
-echo "Done"
+echo "Install successfully !!!"
+echo "type 'sex ' on your terminal to use"

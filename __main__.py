@@ -1,19 +1,11 @@
 import sys
-from curses import *
 import os
-from subprocess import call
-# from entity.cursor import Cursor
-from .entity.cursor import Cursor
 import traceback
-
-
-# add the word custom, so we will mistaken them with variable inside Curses library
-TERMINAL_RESIZE_CODE = 410
-KEY_ESCAPE_CODE = 27 # could be escape or CMD or ALT
-KEY_DELETE_CODE = 127
-KEY_ENTER_CODE = 10
-KEY_TAB_CODE = 9
-BORDER_COLOR = 1
+from src.properties import *
+from src.utils import *
+from subprocess import call
+from src.entity.cursor import Cursor
+from curses import *
 
 
 def main(screen, file_path):
@@ -26,7 +18,7 @@ def main(screen, file_path):
             char = screen.getch()
             if char == KEY_ENTER_CODE:
                 writeToFile(file_path, text)
-                return 0, None
+                return 3, None
             elif char == KEY_F9:
                 return 2, None
             else:
@@ -41,17 +33,6 @@ def main(screen, file_path):
 def setUpEnv():
     use_default_colors()
     init_pair(BORDER_COLOR, COLOR_MAGENTA, -1)
-
-def writeToFile(file_path, text):
-    with open(file_path, "w+") as file:
-        file.write(text)
-
-def readFileIfExist(file_path):
-    text = ""
-    if os.path.isfile(file_path):
-        with open(file_path, "r") as file:
-            text = file.read()
-    return text
 
 
 def startEditing(screen, text):
@@ -110,26 +91,42 @@ def printQuitOptions(screen):
 
 def printExitMessage(exit_code, error_msg):
     if exit_code == -1:
-        call(["echo", "Shit just happen, sorry."])
+        printToTerminal("Shit just happen, sorry.")
         if error_msg:
-            call(["echo", error_msg])
-    elif exit_code == 0:
-        call(["echo", "saved !"])
+            printToTerminal(error_msg)
     elif exit_code == 1:
-        call(["echo", "Quit, safe and sound."])
-    elif exit_code == -2:
-        call(["echo", "you have to provide fileName for either create or edit."])
-    elif exit_code == -2:
-        call(["echo", "Quit without save."])
+        printToTerminal("Quit, safe and sound.")
+    elif exit_code == 2:
+        printToTerminal("Quit without save.")
+    elif exit_code == 3:
+        printToTerminal("saved !")
+    elif exit_code == 4: # -version
+        printToTerminal(VERSION)
+    elif exit_code == 5: # -help
+        printToTerminal("======================== Welcome to Simple Editor X ========================", "GREEN")
+        printToTerminal("")
+        printToTerminal("Arguments:")
+        printToTerminal("   -version")
+        printToTerminal("   -help")
+        printToTerminal("   {file_name}, to start editing an existing or create a new file")
+        printToTerminal("")
+        printToTerminal("While using:")
+        printToTerminal("   Press F1, then ENTER to save")
+        printToTerminal("")
+
 
 if __name__== "__main__":
-    exit_code = -2
-    error_msg = None
-    if len(sys.argv) == 2:
-        exit_code, error_msg = wrapper(main, sys.argv[1])
+    if len(sys.argv) != 2:
+        printToTerminal("This application take exactly 1 argument")
+    error_msg = ""
+    exit_code = -1
+    arg = sys.argv[1].lower()
+    file_path = sys.argv[1]
+    if arg == "-v" or arg == "-version":
+        exit_code = 4
+    elif arg == "-h" or arg == "-help":
+        exit_code = 5
+    else:
+        exit_code, error_msg = wrapper(main, file_path)
 
     printExitMessage(exit_code, error_msg)
-
-
-# todo
-# refactor

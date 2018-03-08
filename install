@@ -6,13 +6,16 @@ if [ ! -d ~/${appDirName} ]; then # if not exist
     mkdir ~/${appDirName}
 fi
 
+currentDir=`dirname $0`
+
 echo "copy source files to ~/${appDirName}"
-cp -a $(pwd)/. ~/${appDirName}
+echo "copy source files $(pwd)/. to ~/${appDirName}"
+cp -a ${currentDir}/. ~/${appDirName}
 
 echo "Create a shortcut to /usr/local/bin"
 shortcutFile="sex"
 chmod +x ${shortcutFile} # set execute permission
-cp ${shortcutFile} /usr/local/bin/${shortcutFile}
+cp ${currentDir}/${shortcutFile} /usr/local/bin/${shortcutFile}
 
 echo "Install successfully !!!"
 echo "type 'sex ' on your terminal to use"

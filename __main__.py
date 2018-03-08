@@ -118,6 +118,8 @@ def printExitMessage(exit_code, error_msg):
 if __name__== "__main__":
     if len(sys.argv) != 2:
         printToTerminal("This application take exactly 1 argument")
+        printToTerminal("type: 'sex -help' for more details")
+        exit(69)
     error_msg = ""
     exit_code = -1
     arg = sys.argv[1].lower()
